@@ -7,8 +7,8 @@ import (
 	"reflect"
 
 	// Postgres access
-	"github.com/jackc/pgx/v4/pgxpool"
-	_ "github.com/jackc/pgx/v4/stdlib" // github.com/lib/pq
+	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/jackc/pgx/v5/stdlib" // github.com/lib/pq
 	"github.com/jmoiron/sqlx"
 )
 
@@ -33,7 +33,7 @@ func NewDB(url string) (*DB, error) {
 }
 
 func NewDBPool(ctx context.Context, url string) (*pgxpool.Pool, error) {
-	pool, err := pgxpool.Connect(ctx, url)
+	pool, err := pgxpool.New(ctx, url)
 	if err != nil {
 		return nil, err
 	}
@@ -221,4 +221,17 @@ func FieldsSet(fields []string) string {
 		result += field + " = :" + field
 	}
 	return result
+}
+
+func Exec(tx *sqlx.Tx, query string, args ...any) (int64, error) {
+	fmt.Printf("--- SQL: %s, params: %v\n", query, args)
+	r, err := tx.Exec(query, args...)
+	if err != nil {
+		return 0, err
+	}
+	count, err := r.RowsAffected()
+	if count <= 0 || err != nil {
+		return 0, fmt.Errorf("No rows affected! Error: %w\n", err)
+	}
+	return count, nil
 }
